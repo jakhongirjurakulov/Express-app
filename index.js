@@ -1,37 +1,82 @@
+const Joi = require('joi');
 const express = require('express');
 const app = express();
-const path = require('path');
-const router = require('./routes/api/members');
-const logger = require('./express-demo/logger');
-const exphbs = require('express-handlebars');
-const members = require('./express-demo/Members');
 
-//Init middleware
-//app.use(logger);
-
-//HAndlebars Middleware
-app.engine('handlebars', exphbs({
-    defaultLayout: 'main'
-}));
-app.set('view engine', 'handlebars');
-
-//Body Parser Middleware
 app.use(express.json());
-app.use(express.urlencoded({
-    extended: false
-}));
 
-//Homepage Route
-app.get('/', (req, res) => res.render('index', {
-    title: 'Member App', 
-    members
-}));
+const courses = [
+  { id: 1, name: 'CourseName1' },
+  { id: 2, name: 'CourseName2' },
+  { id: 3, name: 'CourseName3' },
+];
 
-//Set static folder
-app.use(express.static(path.join(__dirname, 'express-demo', 'public')));
+app.get('/', (req, res) => {
+  res.send('Hello World!!!');
+});
 
-//Members API routes 
-app.use('/api/members', require('./routes/api/members'))
+app.get('/api/courses', (req, res) => {
+  res.send(courses);
+});
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server started on ${PORT}...`));
+app.get('/api/courses/:id', (req, res) => {
+  const course = courses.find((c) => c.id === parseInt(req.params.id));
+  if (!course) res.status(404);
+  res.send(course);
+});
+
+app.post('/api/courses', (req, res) => {
+    const {error} = validateCourse(req.body);
+    
+    if (error) {
+        res
+        .status(400)
+        .send(result.error.details[0].message);
+        return;
+    }
+
+  const course = {
+    id: courses.length + 1,
+    name: req.body.name,
+  };
+  courses.push(course);
+  res.send(course);
+});
+
+app.put('/api/courses/:id', (req, res) => {
+    const course = courses.find((c) => c.id === parseInt(req.params.id));
+    if (!course) res.status(404);
+
+    const {error} = validateCourse(req.body);
+    
+    if (error) {
+        res
+        .status(400)
+        .send(result.error.details[0].message);
+        return;
+    }
+    
+    course.name = req.body.name;    
+    res.send(course);
+});
+
+function validateCourse(course) {
+    const schema = {
+        name: Joi.string().min(3).required(),
+      };
+    
+    return  Joi.validate(course, schema);
+}
+
+app.delete('/api/courses/:id', (req, res) => {
+    const course = courses.find((c) => c.id === parseInt(req.params.id));
+    if (!course) res.status(404);
+
+    const index = courses.indexOf(course);
+    courses.splice(index, 1);
+
+    res.send(course);
+
+});
+
+const port = process.env.PORT || 7070;
+app.listen(port, () => console.log(`Listening on port ${port}...`));
